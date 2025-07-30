@@ -3,7 +3,7 @@ A simple tool to convert any Go repository into a BloodHound OpenGraph compatibl
 
 # Installation
 ```bash
-go install github.com/wes-mil/GopherHound
+go install github.com/wes-mil/GopherHound@latest
 ```
 
 # Usage
