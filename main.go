@@ -95,7 +95,7 @@ func main() {
 				MatchBy: "id",
 				Value:   e.To,
 			},
-			Kind: "DependsOn",
+			Kind: "RequiredBy",
 		})
 	}
 
@@ -147,36 +147,36 @@ func processOutput(r io.ReadCloser, root string) (Graph, error) {
 			return graph, fmt.Errorf("expected 2 words in line, but got %d: %s", len(parts), line)
 		}
 
-		from, to := parts[0], parts[1]
-		if (to != root && !strings.Contains(to, "@")) || (from != root && !strings.Contains(from, "@")) {
+		parent, child := parts[0], parts[1]
+		if (child != root && !strings.Contains(child, "@")) || (parent != root && !strings.Contains(parent, "@")) {
 			continue
 		}
 
-		var fromModule, fromVersion string
-		if parts := strings.Split(from, "@"); len(parts) > 1 {
-			fromModule, fromVersion = parts[0], parts[1]
+		var parentModule, parentVersion string
+		if parts := strings.Split(parent, "@"); len(parts) > 1 {
+			parentModule, parentVersion = parts[0], parts[1]
 		} else if len(parts) == 1 {
-			fromModule = parts[0]
+			parentModule = parts[0]
 		}
 
-		if fromModule != root && fromVersion == "" {
+		if parentModule != root && parentVersion == "" {
 			continue
 		}
 
-		var toModule, toVersion string
-		if parts := strings.Split(to, "@"); len(parts) > 1 {
-			toModule, toVersion = parts[0], parts[1]
+		var childModule, childVersion string
+		if parts := strings.Split(child, "@"); len(parts) > 1 {
+			childModule, childVersion = parts[0], parts[1]
 		} else if len(parts) == 1 {
-			fromModule = parts[0]
+			childModule = parts[0]
 		}
 
-		if toModule != root && toVersion == "" {
+		if childModule != root && childVersion == "" {
 			continue
 		}
 
-		graph.AddNode(fromModule, fromVersion)
-		graph.AddNode(toModule, toVersion)
-		graph.AddEdge(fromModule, toModule)
+		graph.AddNode(parentModule, parentVersion)
+		graph.AddNode(childModule, childVersion)
+		graph.AddEdge(childModule, parentModule)
 	}
 
 	if err := scanner.Err(); err != nil {
