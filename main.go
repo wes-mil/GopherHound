@@ -50,6 +50,7 @@ func main() {
 			SourceKind: "GopherHound",
 		},
 		Graph: bloodhound.Graph{
+			Nodes: []bloodhound.Node{},
 			Edges: []bloodhound.Edge{},
 		},
 	}
@@ -59,13 +60,12 @@ func main() {
 			Start: bloodhound.NodeIdentifier{
 				MatchBy: "id",
 				Value:   e.From,
-				Kind:    "DependsOn",
 			},
 			End: bloodhound.NodeIdentifier{
 				MatchBy: "id",
 				Value:   e.To,
-				Kind:    "DependsOn",
 			},
+			Kind: "DependsOn",
 		})
 	}
 

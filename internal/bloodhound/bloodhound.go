@@ -23,10 +23,10 @@ type Node struct {
 type Edge struct {
 	Start NodeIdentifier `json:"start"`
 	End   NodeIdentifier `json:"end"`
+	Kind  string         `json:"kind"`
 }
 
 type NodeIdentifier struct {
 	MatchBy string `json:"match_by"`
 	Value   string `json:"value"`
-	Kind    string `json:"kind"`
 }
