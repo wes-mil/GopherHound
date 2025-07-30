@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/wes-mil/GopherHound/internal/bloodhound"
@@ -47,12 +49,32 @@ func main() {
 
 	bhGraph := bloodhound.OpenGraph{
 		Metadata: bloodhound.Metadata{
-			SourceKind: "GopherHound",
+			SourceKind: "GopherHoundBase",
 		},
 		Graph: bloodhound.Graph{
 			Nodes: []bloodhound.Node{},
 			Edges: []bloodhound.Edge{},
 		},
+	}
+
+	for _, n := range graph.Nodes {
+		newNode := bloodhound.Node{
+			ID:    n.Module,
+			Kinds: []string{"GoModule"},
+			Properties: map[string]any{
+				"Version": n.Version,
+			},
+		}
+
+		unpickedVersions := slices.SortedFunc(maps.Keys(n.UnpickedVersions), func(s1 string, s2 string) int {
+			return strings.Compare(s2, s1)
+		})
+
+		if len(unpickedVersions) > 0 {
+			newNode.Properties["UnpickedVersions"] = unpickedVersions
+		}
+
+		bhGraph.Graph.Nodes = append(bhGraph.Graph.Nodes, newNode)
 	}
 
 	for _, e := range graph.Edges {
@@ -102,7 +124,7 @@ func getRootNode(modPath string) (result string, err error) {
 func processOutput(r io.ReadCloser, root string) (Graph, error) {
 	var (
 		scanner = bufio.NewScanner(r)
-		graph   = Graph{}
+		graph   = NewGraph()
 	)
 
 	for scanner.Scan() {
@@ -118,7 +140,31 @@ func processOutput(r io.ReadCloser, root string) (Graph, error) {
 			continue
 		}
 
-		graph.AddEdge(Edge{From: from, To: to})
+		var fromModule, fromVersion string
+		if parts := strings.Split(from, "@"); len(parts) > 1 {
+			fromModule, fromVersion = parts[0], parts[1]
+		} else if len(parts) == 1 {
+			fromModule = parts[0]
+		}
+
+		if fromModule != root && fromVersion == "" {
+			continue
+		}
+
+		var toModule, toVersion string
+		if parts := strings.Split(to, "@"); len(parts) > 1 {
+			toModule, toVersion = parts[0], parts[1]
+		} else if len(parts) == 1 {
+			fromModule = parts[0]
+		}
+
+		if toModule != root && toVersion == "" {
+			continue
+		}
+
+		graph.AddNode(fromModule, fromVersion)
+		graph.AddNode(toModule, toVersion)
+		graph.AddEdge(fromModule, toModule)
 	}
 
 	if err := scanner.Err(); err != nil {
