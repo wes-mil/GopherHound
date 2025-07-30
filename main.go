@@ -65,13 +65,16 @@ func main() {
 
 	for _, n := range graph.Nodes {
 		newNode := bloodhound.Node{
-			ID:         n.Module,
+			ID:         builderGopherHoundID(rootNode, n.Module),
 			Kinds:      []string{"GoModule"},
 			Properties: map[string]any{},
 		}
 
+		newNode.Properties["name"] = n.Module
+		newNode.Properties["module"] = n.Module
+
 		if n.Version != "" {
-			newNode.Properties["Version"] = n.Version
+			newNode.Properties["version"] = n.Version
 		}
 
 		unpickedVersions := slices.SortedFunc(maps.Keys(n.UnpickedVersions), func(s1 string, s2 string) int {
@@ -79,7 +82,7 @@ func main() {
 		})
 
 		if len(unpickedVersions) > 0 {
-			newNode.Properties["UnpickedVersions"] = unpickedVersions
+			newNode.Properties["unpicked_versions"] = unpickedVersions
 		}
 
 		bhGraph.Graph.Nodes = append(bhGraph.Graph.Nodes, newNode)
@@ -89,11 +92,11 @@ func main() {
 		bhGraph.Graph.Edges = append(bhGraph.Graph.Edges, bloodhound.Edge{
 			Start: bloodhound.NodeIdentifier{
 				MatchBy: "id",
-				Value:   e.From,
+				Value:   builderGopherHoundID(rootNode, e.From),
 			},
 			End: bloodhound.NodeIdentifier{
 				MatchBy: "id",
-				Value:   e.To,
+				Value:   builderGopherHoundID(rootNode, e.To),
 			},
 			Kind: "RequiredBy",
 		})
@@ -114,6 +117,10 @@ func main() {
 	if err := file.Close(); err != nil {
 		slog.Error("Failed to write to close output file", "filename", "opengraph.json", "error", err)
 	}
+}
+
+func builderGopherHoundID(rootNode string, module string) string {
+	return fmt.Sprintf("%s_%s_%s", "gopherhound", rootNode, module)
 }
 
 func getRootNode(modPath string) (result string, err error) {
