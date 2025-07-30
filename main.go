@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -17,6 +18,11 @@ import (
 )
 
 func main() {
+	var outputFile string
+	flag.StringVar(&outputFile, "output", "opengraph.json", "output file")
+
+	flag.Parse()
+
 	cmd := exec.Command("go", "mod", "graph")
 
 	outpipe, err := cmd.StdoutPipe()
@@ -59,11 +65,13 @@ func main() {
 
 	for _, n := range graph.Nodes {
 		newNode := bloodhound.Node{
-			ID:    n.Module,
-			Kinds: []string{"GoModule"},
-			Properties: map[string]any{
-				"Version": n.Version,
-			},
+			ID:         n.Module,
+			Kinds:      []string{"GoModule"},
+			Properties: map[string]any{},
+		}
+
+		if n.Version != "" {
+			newNode.Properties["Version"] = n.Version
 		}
 
 		unpickedVersions := slices.SortedFunc(maps.Keys(n.UnpickedVersions), func(s1 string, s2 string) int {
@@ -91,7 +99,7 @@ func main() {
 		})
 	}
 
-	file, err := os.Create("opengraph.json")
+	file, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
 		slog.Error("Failed to open output file", "filename", "opengraph.json", "error", err)
 		os.Exit(1)
@@ -101,6 +109,10 @@ func main() {
 	if err := encoder.Encode(bhGraph); err != nil {
 		slog.Error("Failed to write to output file", "filename", "opengraph.json", "error", err)
 		os.Exit(1)
+	}
+
+	if err := file.Close(); err != nil {
+		slog.Error("Failed to write to close output file", "filename", "opengraph.json", "error", err)
 	}
 }
 
