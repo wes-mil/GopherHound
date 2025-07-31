@@ -98,7 +98,7 @@ func main() {
 				MatchBy: "id",
 				Value:   builderGopherHoundID(rootNode, e.To),
 			},
-			Kind: "RequiredBy",
+			Kind: "GoModuleRequiredBy",
 		})
 	}
 
